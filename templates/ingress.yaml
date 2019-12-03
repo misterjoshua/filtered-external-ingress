@@ -14,22 +14,20 @@ metadata:
     nginx.ingress.kubernetes.io/enable-modsecurity: "true"
     nginx.ingress.kubernetes.io/modsecurity-snippet: |
       SecRuleEngine On
-{{- if .Values.ingress.modsecurity.owasp }}
-      Include /etc/nginx/owasp-modsecurity-crs/nginx-modsecurity.conf
+{{- if .Values.ingress.modsecurity.snippet }}
+{{ .Values.ingress.modsecurity.snippet | indent 6 }}
 {{- end }}
 {{- if .Values.ingress.modsecurity.whitelist }}
       SecRule REMOTE_ADDR "!@ipMatch {{ .Values.ingress.modsecurity.whitelist }}" "id:10000,deny"
 {{- end -}}
 {{- if .Values.ingress.modsecurity.restrictedWhitelist }}
-{{- $restrictedWhitelist := .Values.ingress.modsecurity.restrictedWhitelist }}
+      SecRule REMOTE_ADDR "@ipMatch {{ .Values.ingress.modsecurity.restrictedWhitelist }}" "id:10005,ctl:ruleEngine=Off"
+{{- end }}
 {{- range $index, $uri := .Values.ingress.modsecurity.restrictedUris }}
-      SecRule REQUEST_URI "@beginsWith {{ $uri }}" "id:{{ add 10100 $index }},chain,deny"
-        SecRule REMOTE_ADDR "!@ipMatch {{ $restrictedWhitelist }}"
-      {{ "" }}
+      SecRule REQUEST_URI "@beginsWith {{ $uri }}" "id:{{ add 10100 $index }},deny"
 {{- end }}
-{{- end }}
-{{- if .Values.ingress.modsecurity.snippet }}
-{{ .Values.ingress.modsecurity.snippet | indent 6 }}
+{{- if .Values.ingress.modsecurity.owasp }}
+      Include /etc/nginx/owasp-modsecurity-crs/nginx-modsecurity.conf
 {{- end }}
 {{- end }}
 {{- if .Values.ingress.nginx.configurationSnippet }}
