@@ -1,0 +1,21 @@
+ingress:
+  hosts: []
+  tls:
+    enabled: false
+    certManager:
+      clusterIssuer: ""
+      issuer: ""
+  modsecurity:
+    enabled: false
+    owasp: false
+    whitelist: ""
+    restrictedUris: []
+    restrictedWhitelist: ""
+  nginx:
+    configurationSnippet: ""
+
+service:
+  externalName: ""
+  selector: ~
+  ports:
+    - port: 80

@@ -1,0 +1,62 @@
+{{- if (or .Values.ingress.host .Values.ingress.hosts) }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ include "secured-ingress.fullname" . }}
+  annotations:
+{{- if .Values.ingress.tls.certManager.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.tls.certManager.clusterIssuer }}
+{{- end }}
+{{- if .Values.ingress.tls.certManager.issuer }}
+    cert-manager.io/issuer: {{ .Values.ingress.tls.certManager.issuer }}
+{{- end }}
+{{- if .Values.ingress.modsecurity.enabled }}
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
+{{- if .Values.ingress.modsecurity.owasp }}
+      Include /etc/nginx/owasp-modsecurity-crs/nginx-modsecurity.conf
+{{- end }}
+{{- if .Values.ingress.modsecurity.whitelist }}
+      SecRule REMOTE_ADDR "!@ipMatch {{ .Values.ingress.modsecurity.whitelist }}" "id:10000,deny"
+{{- end -}}
+{{- if .Values.ingress.modsecurity.restrictedWhitelist }}
+{{- $restrictedWhitelist := .Values.ingress.modsecurity.restrictedWhitelist }}
+{{- range $index, $uri := .Values.ingress.modsecurity.restrictedUris }}
+      SecRule REQUEST_URI "@beginsWith {{ $uri }}" "id:{{ add 10100 $index }},chain,deny"
+        SecRule REMOTE_ADDR "!@ipMatch {{ $restrictedWhitelist }}"
+      {{ "" }}
+{{- end }}
+{{- end }}
+{{- if .Values.ingress.modsecurity.snippet }}
+{{ .Values.ingress.modsecurity.snippet | indent 6 }}
+{{- end }}
+{{- end }}
+{{- if .Values.ingress.nginx.configurationSnippet }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+{{ .Values.ingress.nginx.configurationSnippet | indent 6 }}
+{{- end }}
+spec:
+  rules:
+{{- $root := . -}}
+{{- range .Values.ingress.hosts }}
+    - host: {{ . }}
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: {{ include "secured-ingress.fullname" $root }}
+            servicePort: 80
+{{- end }}
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+{{- if .Values.ingress.host }}
+      - {{ .Values.ingress.host }}
+{{- end }}
+{{- range .Values.ingress.hosts }}
+      - {{ . }}
+{{- end }}
+      secretName: {{ include "secured-ingress.fullname" . }}
+{{- end }}
+{{- end }}

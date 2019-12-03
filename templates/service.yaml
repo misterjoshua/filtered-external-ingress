@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "secured-ingress.fullname" . }}
+spec:
+{{- if .Values.service.externalName }}
+  type: ExternalName
+  externalName: {{ .Values.service.externalName }}
+{{- else }}
+  selector:
+{{- .Values.service.selector | toYaml | indent 4 }}
+{{- end }}
+  ports:
+{{- range .Values.service.ports }}
+    -
+{{ . | toYaml | indent 6 }}
+{{- end }}
