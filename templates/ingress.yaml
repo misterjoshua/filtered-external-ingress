@@ -4,6 +4,9 @@ kind: Ingress
 metadata:
   name: {{ include "secured-ingress.fullname" . }}
   annotations:
+{{- if .Values.ingress.annotations }}
+{{- .Values.ingress.annotations | toYaml | nindent 4 }}
+{{- end }}
 {{- if .Values.ingress.tls.certManager.clusterIssuer }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.tls.certManager.clusterIssuer }}
 {{- end }}
